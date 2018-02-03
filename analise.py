@@ -18,6 +18,7 @@ deputados_roraima = df
 class Deputado:
 
     def __init__(self):
+        self.numeroCarteira = None
         self.nome = None
         self.telefone = 0
         self.transporte = 0
@@ -61,6 +62,7 @@ categorias_gastos = deputados_roraima.txtDescricao.unique()
 for numero_carteira in deputados_roraima.nuCarteiraParlamentar.unique():
     deputado = Deputado()
     deputadodf = deputados_roraima.query('nuCarteiraParlamentar == {}'.format(numero_carteira))
+    deputado.numeroCarteira = deputadodf['nuCarteiraParlamentar'].unique()[0]
     deputado.nome = deputadodf['txNomeParlamentar'].unique()[0]
     deputado.total = 0
     for categoria_gasto in categorias_gastos:
@@ -72,7 +74,22 @@ for numero_carteira in deputados_roraima.nuCarteiraParlamentar.unique():
         deputado.total += total_categoria
     deputados.append(deputado)
 
+# firebase
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
+
+#configurando firebase
+cred = credentials.Certificate('cred.json')
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://deputados-745ce.firebaseio.com/'
+})
+
+#no do db
+ref = db.reference('deputado/2017')
+
 for deputado in deputados:
+    print(deputado.numeroCarteira)
     print(deputado.nome)
     print('Telefone: {:.2f}%'.format(porcentagem(deputado.telefone, deputado.total)))
     print('Transporte: {:.2f}%'.format(porcentagem(deputado.transporte, deputado.total)))
@@ -86,3 +103,17 @@ for deputado in deputados:
     print('Total de dinheiro gasto: R$ {:.2f}'.format(deputado.total))
     print()
 
+    ref_id = ref.child('{:.0f}'.format(deputado.numeroCarteira))
+    ref_id.set({
+        'nome': deputado.nome,
+        'telefone': round(deputado.telefone, 2),
+        'transporte': round(deputado.transporte, 2),
+        'viagem': round(deputado.viagem, 2),
+        'escritorio': round(deputado.escritorio, 2),
+        'marketing': round(deputado.marketing, 2),
+        'seguranca': round(deputado.seguranca, 2),
+        'alimentacao': round(deputado.alimentacao, 2),
+        'hospedagem': round(deputado.hospedagem, 2),
+        'outro': round(deputado.outro, 2),
+        'total': round(deputado.total, 2)
+    })
